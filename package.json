@@ -1,0 +1,19 @@
+{
+  "name": "study-tv-timer-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "子供の勉強時間をテレビ視聴時間に換算するPWAアプリ",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node --check app.js && node --check sw.js",
+    "build": "mkdir -p dist && cp -r index.html styles.css app.js manifest.webmanifest sw.js assets dist/"
+  },
+  "keywords": [
+    "pwa",
+    "timer",
+    "study",
+    "kids"
+  ],
+  "author": "",
+  "license": "MIT"
+}
