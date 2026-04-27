@@ -34,6 +34,11 @@ const elements = {
   tvStartBtn: document.getElementById("tvStartBtn"),
   tvPauseBtn: document.getElementById("tvPauseBtn"),
   tvResetBtn: document.getElementById("tvResetBtn"),
+  carryoverDialog: document.getElementById("carryoverDialog"),
+  carryoverTime: document.getElementById("carryoverTime"),
+  carryoverAddBtn: document.getElementById("carryoverAddBtn"),
+  carryoverResetBtn: document.getElementById("carryoverResetBtn"),
+  carryoverCancelBtn: document.getElementById("carryoverCancelBtn"),
 };
 
 function loadState() {
@@ -180,18 +185,53 @@ function render() {
   elements.tvStartBtn.disabled = tvRemaining <= 0 || state.tvStatus === "running";
   elements.tvPauseBtn.textContent = state.tvStatus === "paused" ? "停止中" : "一時停止";
   elements.tvPauseBtn.disabled = state.tvStatus !== "running";
-  elements.tvResetBtn.disabled = state.approvedSeconds <= 0 || state.tvStatus === "running";
+  elements.tvResetBtn.disabled = tvRemaining <= 0 || state.tvStatus === "running";
 
   setStatusText();
 }
 
 function startStudy() {
+  if (state.studyStatus === "paused") {
+    beginStudyWithTvCredit();
+    return;
+  }
+
+  const remainingTvSeconds = getTvRemainingSeconds();
+  if (remainingTvSeconds > 0) {
+    openCarryoverDialog(remainingTvSeconds);
+    return;
+  }
+
+  beginStudyWithTvCredit();
+}
+
+function beginStudyWithTvCredit() {
   preserveTvCredit();
   state.studyStatus = "running";
   state.studyStartedAt = nowSeconds();
   state.reviewVisible = false;
   saveState();
   render();
+}
+
+function beginStudyAfterTvReset() {
+  clearTvCredit();
+  state.studyStatus = "running";
+  state.studyStartedAt = nowSeconds();
+  state.reviewVisible = false;
+  saveState();
+  render();
+}
+
+function openCarryoverDialog(remainingTvSeconds) {
+  elements.carryoverTime.textContent = formatTime(remainingTvSeconds);
+  elements.carryoverDialog.classList.remove("hidden");
+  elements.carryoverAddBtn.focus();
+}
+
+function closeCarryoverDialog() {
+  elements.carryoverDialog.classList.add("hidden");
+  elements.studyStartBtn.focus();
 }
 
 function pauseStudy() {
@@ -259,10 +299,16 @@ function pauseTv() {
   render();
 }
 
-function resetTv() {
-  state.tvRemaining = state.approvedSeconds;
+function clearTvCredit() {
+  state.approvedSeconds = 0;
+  state.tvRemaining = 0;
   state.tvStartedAt = null;
-  state.tvStatus = state.approvedSeconds > 0 ? "idle" : "done";
+  state.tvStatus = "idle";
+}
+
+function resetTv() {
+  if (!window.confirm("今日のテレビ時間をゼロにしますか？")) return;
+  clearTvCredit();
   saveState();
   render();
 }
@@ -376,6 +422,15 @@ elements.confirmBtn.addEventListener("click", confirmTvTime);
 elements.tvStartBtn.addEventListener("click", startTv);
 elements.tvPauseBtn.addEventListener("click", pauseTv);
 elements.tvResetBtn.addEventListener("click", resetTv);
+elements.carryoverAddBtn.addEventListener("click", () => {
+  closeCarryoverDialog();
+  beginStudyWithTvCredit();
+});
+elements.carryoverResetBtn.addEventListener("click", () => {
+  closeCarryoverDialog();
+  beginStudyAfterTvReset();
+});
+elements.carryoverCancelBtn.addEventListener("click", closeCarryoverDialog);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

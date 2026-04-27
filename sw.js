@@ -1,4 +1,4 @@
-const CACHE_NAME = "study-tv-timer-v3";
+const CACHE_NAME = "study-tv-timer-v4";
 const ASSETS = [
   "./",
   "index.html",
