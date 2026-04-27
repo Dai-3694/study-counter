@@ -89,7 +89,7 @@
         <div class="button-row">
           <button id="tvStartBtn" class="primary-button" disabled>テレビを見る</button>
           <button id="tvPauseBtn" class="secondary-button" disabled>一時停止</button>
-          <button id="tvResetBtn" class="ghost-button" disabled>テレビタイマーを戻す</button>
+          <button id="tvResetBtn" class="ghost-button" disabled>今日のテレビ時間をリセット</button>
         </div>
       </section>
 
@@ -97,12 +97,30 @@
         <h2>使い方</h2>
         <ol>
           <li>勉強を始めるときに「勉強スタート」を押します。</li>
+          <li>テレビ時間が残っているときは、残り時間に加算するか、リセットして始めるかを選べます。</li>
           <li>途中で休むときは一時停止、再開するときは再開ボタンを押します。</li>
           <li>終わったら「勉強おわり！」を押して、ノートやプリントを見せます。</li>
           <li>パパ・ママが5分単位でテレビ時間を調整して決定します。</li>
           <li>テレビを見るときに「テレビを見る」を押して、タイマーとして使います。</li>
+          <li>翌日に持ち越さないときは「今日のテレビ時間をリセット」でゼロにできます。</li>
         </ol>
       </section>
+
+      <div id="carryoverDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="carryoverTitle" aria-describedby="carryoverDescription">
+        <div class="dialog-card">
+          <h2 id="carryoverTitle">テレビ時間が残っています</h2>
+          <p id="carryoverDescription">
+            残っているテレビ時間を、これからの勉強で獲得する時間に加算しますか？
+            翌日に持ち越さない場合は、リセットしてから始められます。
+          </p>
+          <div id="carryoverTime" class="dialog-time">00:00:00</div>
+          <div class="button-row dialog-actions">
+            <button id="carryoverAddBtn" class="primary-button">残り時間に加算する</button>
+            <button id="carryoverResetBtn" class="finish-button">リセットして始める</button>
+            <button id="carryoverCancelBtn" class="secondary-button">キャンセル</button>
+          </div>
+        </div>
+      </div>
     </main>
 
     <script src="app.js" defer></script>
