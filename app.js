@@ -384,9 +384,16 @@ function playAlarm() {
   if (!context) return;
 
   const base = context.currentTime;
-  playTone(base, 660, 0.28);
-  playTone(base + 0.35, 880, 0.28);
-  playTone(base + 0.7, 660, 0.45);
+  const totalDuration = 5;
+  const toneDuration = 0.28;
+  const interval = 0.5;
+  const frequencies = [660, 880];
+  const toneCount = Math.floor(totalDuration / interval);
+
+  for (let index = 0; index < toneCount; index += 1) {
+    const offset = index * interval;
+    playTone(base + offset, frequencies[index % frequencies.length], toneDuration);
+  }
 }
 
 function tick() {
