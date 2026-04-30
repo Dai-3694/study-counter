@@ -19,6 +19,7 @@ let state = loadState();
 let audioContext;
 let wakeLockSentinel = null;
 let wakeLockRequestInFlight = null;
+let wakeLockWarningShown = false;
 
 const elements = {
   approvedTime: document.getElementById("approvedTime"),
@@ -363,14 +364,35 @@ async function requestWakeLock() {
 
   wakeLockRequestInFlight = navigator.wakeLock
     .request("screen")
-    .then((sentinel) => {
+    .then(async (sentinel) => {
       wakeLockSentinel = sentinel;
-      wakeLockSentinel.addEventListener("release", () => {
-        wakeLockSentinel = null;
+      wakeLockWarningShown = false;
+      sentinel.addEventListener("release", () => {
+        if (wakeLockSentinel === sentinel) {
+          wakeLockSentinel = null;
+        }
       });
+
+      if (!shouldKeepScreenAwake() || document.visibilityState !== "visible") {
+        try {
+          await sentinel.release();
+        } catch (error) {
+          if (!wakeLockWarningShown) {
+            wakeLockWarningShown = true;
+            console.warn("画面点灯維持の解除に失敗しました", error);
+          }
+        } finally {
+          if (wakeLockSentinel === sentinel) {
+            wakeLockSentinel = null;
+          }
+        }
+      }
     })
     .catch((error) => {
-      console.warn("画面点灯維持の設定に失敗しました", error);
+      if (!wakeLockWarningShown) {
+        wakeLockWarningShown = true;
+        console.warn("画面点灯維持の設定に失敗しました", error);
+      }
     })
     .finally(() => {
       wakeLockRequestInFlight = null;
@@ -384,7 +406,10 @@ async function releaseWakeLock() {
   try {
     await wakeLockSentinel.release();
   } catch (error) {
-    console.warn("画面点灯維持の解除に失敗しました", error);
+    if (!wakeLockWarningShown) {
+      wakeLockWarningShown = true;
+      console.warn("画面点灯維持の解除に失敗しました", error);
+    }
   } finally {
     wakeLockSentinel = null;
   }
@@ -467,6 +492,7 @@ document.addEventListener("visibilitychange", () => {
     handleAppHidden();
     return;
   }
+  wakeLockWarningShown = false;
   handleAppVisible();
 });
 window.addEventListener("pagehide", handleAppHidden);
