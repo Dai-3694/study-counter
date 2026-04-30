@@ -17,6 +17,8 @@ const defaultState = {
 
 let state = loadState();
 let audioContext;
+let wakeLockSentinel = null;
+let wakeLockRequestInFlight = null;
 
 const elements = {
   approvedTime: document.getElementById("approvedTime"),
@@ -188,6 +190,7 @@ function render() {
   elements.tvResetBtn.disabled = tvRemaining <= 0 || state.tvStatus === "running";
 
   setStatusText();
+  syncWakeLock();
 }
 
 function startStudy() {
@@ -342,10 +345,57 @@ function checkpointRunningTimers() {
 
 function handleAppHidden() {
   checkpointRunningTimers();
+  releaseWakeLock();
 }
 
 function handleAppVisible() {
   tick();
+}
+
+function shouldKeepScreenAwake() {
+  return state.studyStatus === "running" || state.tvStatus === "running";
+}
+
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator) || wakeLockSentinel || wakeLockRequestInFlight || document.visibilityState !== "visible") {
+    return;
+  }
+
+  wakeLockRequestInFlight = navigator.wakeLock
+    .request("screen")
+    .then((sentinel) => {
+      wakeLockSentinel = sentinel;
+      wakeLockSentinel.addEventListener("release", () => {
+        wakeLockSentinel = null;
+      });
+    })
+    .catch((error) => {
+      console.warn("画面点灯維持の設定に失敗しました", error);
+    })
+    .finally(() => {
+      wakeLockRequestInFlight = null;
+    });
+
+  await wakeLockRequestInFlight;
+}
+
+async function releaseWakeLock() {
+  if (!wakeLockSentinel) return;
+  try {
+    await wakeLockSentinel.release();
+  } catch (error) {
+    console.warn("画面点灯維持の解除に失敗しました", error);
+  } finally {
+    wakeLockSentinel = null;
+  }
+}
+
+function syncWakeLock() {
+  if (shouldKeepScreenAwake() && document.visibilityState === "visible") {
+    requestWakeLock();
+    return;
+  }
+  releaseWakeLock();
 }
 
 function unlockAudio() {
@@ -404,8 +454,14 @@ function tick() {
   render();
 }
 
-document.addEventListener("pointerdown", unlockAudio, { once: true });
-document.addEventListener("keydown", unlockAudio, { once: true });
+document.addEventListener("pointerdown", () => {
+  unlockAudio();
+  syncWakeLock();
+}, { once: true });
+document.addEventListener("keydown", () => {
+  unlockAudio();
+  syncWakeLock();
+}, { once: true });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     handleAppHidden();
